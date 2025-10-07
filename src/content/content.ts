@@ -25,7 +25,7 @@ class SSRInspector {
    */
   private loadSettings(): void {
     chrome.storage.sync.get(['inspectorEnabled'], (result) => {
-      this.enabled = result.inspectorEnabled !== false; // default true
+      this.enabled = result.inspectorEnabled === true; // default false
       if (this.enabled) {
         this.overlayManager.enable();
       }
@@ -65,15 +65,28 @@ class SSRInspector {
   }
 
   /**
-   * Setup keyboard shortcut (Alt + S)
+   * Setup keyboard shortcut (Ctrl + Shift + I)
    */
   private setupKeyboardShortcut(): void {
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 's') {
+    const handler = (e: KeyboardEvent) => {
+      // Use Ctrl + Shift + I (like inspector, but custom)
+      // On Mac, Ctrl is still Ctrl (not Command)
+      if (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
+        console.log('[SSR Inspector] Keyboard shortcut detected');
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         this.toggle();
+        return false;
       }
-    });
+    };
+
+    // Add listener in capture phase with highest priority
+    document.addEventListener('keydown', handler, true);
+    window.addEventListener('keydown', handler, true);
+    document.body?.addEventListener('keydown', handler, true);
+
+    console.log('[SSR Inspector] Keyboard shortcut registered (Ctrl + Shift + I)');
   }
 
   /**
@@ -81,14 +94,18 @@ class SSRInspector {
    */
   private toggle(): void {
     this.enabled = !this.enabled;
+    console.log('[SSR Inspector] Toggling to:', this.enabled ? 'ENABLED' : 'DISABLED');
+
     chrome.storage.sync.set({ inspectorEnabled: this.enabled });
 
     if (this.enabled) {
       this.overlayManager.enable();
       this.showNotification('SSR Inspector enabled');
+      console.log('[SSR Inspector] ✅ Inspector is now ENABLED');
     } else {
       this.overlayManager.disable();
       this.showNotification('SSR Inspector disabled');
+      console.log('[SSR Inspector] ❌ Inspector is now DISABLED');
     }
   }
 
