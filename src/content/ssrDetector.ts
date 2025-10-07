@@ -1,5 +1,6 @@
 /**
  * SSR Detector - Detects whether elements are server-side rendered or client-side rendered
+ * Framework-agnostic approach: marks elements present at script load time as SSR
  */
 export class SSRDetector {
   private ssrElements: WeakSet<Element> = new WeakSet();
@@ -11,21 +12,20 @@ export class SSRDetector {
   }
 
   private init(): void {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.markInitialElements());
-    } else {
-      this.markInitialElements();
-    }
+    // Mark all current elements as SSR immediately
+    this.markInitialElements();
+
+    // Start observing for new CSR elements
+    this.startObserving();
   }
 
   /**
-   * Mark all elements present in initial HTML as SSR
+   * Mark all elements currently in DOM as SSR
    */
   private markInitialElements(): void {
     console.log('[SSR Inspector] Marking initial SSR elements');
 
-    // Get all elements in the initial DOM
+    // Get all elements in the current DOM
     const allElements = document.querySelectorAll('*');
     allElements.forEach((element) => {
       this.ssrElements.add(element);
@@ -33,9 +33,6 @@ export class SSRDetector {
 
     this.initialScanComplete = true;
     console.log(`[SSR Inspector] Marked ${allElements.length} SSR elements`);
-
-    // Start observing for CSR elements
-    this.startObserving();
   }
 
   /**

@@ -140,6 +140,15 @@ body {
   transform: translateY(0);
 }
 
+.button-active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.button-inactive {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+/* Legacy classes for compatibility */
 .button-enable {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
