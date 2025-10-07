@@ -10,7 +10,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const ssrCount = document.getElementById('ssr-count') as HTMLSpanElement;
   const csrCount = document.getElementById('csr-count') as HTMLSpanElement;
   const totalCount = document.getElementById('total-count') as HTMLSpanElement;
-  const shortcutText = document.getElementById('shortcut-text') as HTMLParagraphElement;
+  const reloadNotice = document.getElementById('reload-notice') as HTMLDivElement;
+  const reloadButton = document.getElementById('reload-button') as HTMLButtonElement;
+
+  let contentScriptAvailable = true;
+
+  // Reload button click
+  reloadButton.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.reload(tabs[0].id);
+      }
+    });
+  });
 
   // Load initial status
   loadStatus();
@@ -18,9 +30,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Toggle button click
   toggleButton.addEventListener('click', () => {
+    if (!contentScriptAvailable) {
+      return;
+    }
+
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         chrome.tabs.sendMessage(tabs[0].id, { type: 'TOGGLE_INSPECTOR' }, (response) => {
+          // Check for chrome.runtime.lastError
+          if (chrome.runtime.lastError) {
+            console.log('Content script not loaded:', chrome.runtime.lastError.message);
+            return;
+          }
+
           if (response) {
             updateUI(response.enabled);
             // Reload stats after toggle
@@ -35,8 +57,33 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         chrome.tabs.sendMessage(tabs[0].id, { type: 'GET_STATUS' }, (response) => {
+          // Check for chrome.runtime.lastError
+          if (chrome.runtime.lastError) {
+            console.log('Content script not loaded:', chrome.runtime.lastError.message);
+            contentScriptAvailable = false;
+            statusText.textContent = 'Not Available';
+            statusText.className = 'status disabled';
+            reloadNotice.style.display = 'block';
+            toggleButton.disabled = true;
+            toggleButton.style.opacity = '0.5';
+            toggleButton.style.cursor = 'not-allowed';
+            return;
+          }
+
+          contentScriptAvailable = true;
+          reloadNotice.style.display = 'none';
+          toggleButton.disabled = false;
+          toggleButton.style.opacity = '1';
+          toggleButton.style.cursor = 'pointer';
+
           if (response) {
             updateUI(response.enabled);
+          } else {
+            // Fallback: check storage
+            chrome.storage.sync.get(['inspectorEnabled'], (result) => {
+              const enabled = result.inspectorEnabled !== false;
+              updateUI(enabled);
+            });
           }
         });
       }
@@ -47,6 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         chrome.tabs.sendMessage(tabs[0].id, { type: 'GET_STATS' }, (response: Stats) => {
+          // Check for chrome.runtime.lastError
+          if (chrome.runtime.lastError) {
+            console.log('Content script not loaded:', chrome.runtime.lastError.message);
+            updateStats({ ssr: 0, csr: 0, total: 0 });
+            return;
+          }
+
           if (response) {
             updateStats(response);
           }
