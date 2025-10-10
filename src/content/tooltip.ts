@@ -1,11 +1,31 @@
+import { RenderType } from './ssrDetector';
+
 /**
- * Tooltip - Displays element information
+ * Tooltip - Displays element information with render type
  */
 export class Tooltip {
   private tooltip: HTMLDivElement | null = null;
 
   constructor() {
-    this.createTooltip();
+    this.init();
+  }
+
+  /**
+   * Initialize - wait for body to exist
+   */
+  private init(): void {
+    if (document.body) {
+      this.createTooltip();
+    } else {
+      // Wait for body to exist
+      const observer = new MutationObserver(() => {
+        if (document.body) {
+          this.createTooltip();
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.documentElement, { childList: true });
+    }
   }
 
   private createTooltip(): void {
@@ -18,7 +38,7 @@ export class Tooltip {
   /**
    * Show tooltip with element information
    */
-  public show(element: Element, isSSR: boolean, position: { x: number; y: number }): void {
+  public show(element: Element, renderType: RenderType, position: { x: number; y: number }): void {
     if (!this.tooltip) return;
 
     const tagName = element.tagName.toLowerCase();
@@ -26,22 +46,50 @@ export class Tooltip {
     const id = element.id ? `#${element.id}` : '';
     const rect = element.getBoundingClientRect();
 
-    const renderType = isSSR ? 'SSR' : 'CSR';
-    const renderColor = isSSR ? '#10b981' : '#3b82f6';
+    // Set color and description based on render type
+    let renderColor: string;
+    let renderLabel: string;
+    let renderDesc: string;
+    let confidence: string;
+
+    switch (renderType) {
+      case RenderType.SSR:
+        renderColor = '#10b981';
+        renderLabel = 'SSR';
+        renderDesc = 'Server-Side Rendered';
+        confidence = 'High - Present at document start';
+        break;
+      case RenderType.CSR:
+        renderColor = '#3b82f6';
+        renderLabel = 'CSR';
+        renderDesc = 'Client-Side Rendered';
+        confidence = 'High - Added by JavaScript';
+        break;
+      case RenderType.UNKNOWN:
+        renderColor = '#fbbf24';
+        renderLabel = 'UNKNOWN';
+        renderDesc = 'Cannot Determine';
+        confidence = 'Low - Added before monitoring';
+        break;
+    }
 
     this.tooltip.innerHTML = `
       <div class="ssr-inspector-tooltip-header" style="background-color: ${renderColor}">
-        <span class="ssr-inspector-tooltip-badge">${renderType}</span>
+        <span class="ssr-inspector-tooltip-badge">${renderLabel}</span>
         <span class="ssr-inspector-tooltip-tag">${tagName}${id}${classes}</span>
       </div>
       <div class="ssr-inspector-tooltip-body">
         <div class="ssr-inspector-tooltip-row">
-          <span class="ssr-inspector-tooltip-label">Size:</span>
-          <span class="ssr-inspector-tooltip-value">${Math.round(rect.width)}×${Math.round(rect.height)}</span>
+          <span class="ssr-inspector-tooltip-label">Type:</span>
+          <span class="ssr-inspector-tooltip-value">${renderDesc}</span>
         </div>
         <div class="ssr-inspector-tooltip-row">
-          <span class="ssr-inspector-tooltip-label">Type:</span>
-          <span class="ssr-inspector-tooltip-value">${isSSR ? 'Server-Side Rendered' : 'Client-Side Rendered'}</span>
+          <span class="ssr-inspector-tooltip-label">Confidence:</span>
+          <span class="ssr-inspector-tooltip-value">${confidence}</span>
+        </div>
+        <div class="ssr-inspector-tooltip-row">
+          <span class="ssr-inspector-tooltip-label">Size:</span>
+          <span class="ssr-inspector-tooltip-value">${Math.round(rect.width)}×${Math.round(rect.height)}</span>
         </div>
       </div>
     `;

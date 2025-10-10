@@ -1,4 +1,4 @@
-import { SSRDetector } from './ssrDetector';
+import { SSRDetector, RenderType } from './ssrDetector';
 import { Tooltip } from './tooltip';
 
 /**
@@ -16,7 +16,25 @@ export class OverlayManager {
   constructor(ssrDetector: SSRDetector) {
     this.ssrDetector = ssrDetector;
     this.tooltip = new Tooltip();
-    this.createOverlay();
+    this.init();
+  }
+
+  /**
+   * Initialize - wait for body to exist
+   */
+  private init(): void {
+    if (document.body) {
+      this.createOverlay();
+    } else {
+      // Wait for body to exist
+      const observer = new MutationObserver(() => {
+        if (document.body) {
+          this.createOverlay();
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.documentElement, { childList: true });
+    }
   }
 
   /**
@@ -120,16 +138,26 @@ export class OverlayManager {
     if (!this.overlay) return;
 
     const rect = element.getBoundingClientRect();
-    const isSSR = this.ssrDetector.isSSR(element);
+    const renderType = this.ssrDetector.getRenderType(element);
 
-    // Set overlay color based on SSR/CSR
-    const backgroundColor = isSSR
-      ? 'rgba(16, 185, 129, 0.2)' // Green for SSR
-      : 'rgba(59, 130, 246, 0.2)'; // Blue for CSR
+    // Set overlay color based on render type
+    let backgroundColor: string;
+    let borderColor: string;
 
-    const borderColor = isSSR
-      ? 'rgba(16, 185, 129, 0.8)' // Green border for SSR
-      : 'rgba(59, 130, 246, 0.8)'; // Blue border for CSR
+    switch (renderType) {
+      case RenderType.SSR:
+        backgroundColor = 'rgba(16, 185, 129, 0.2)'; // Green for SSR
+        borderColor = 'rgba(16, 185, 129, 0.8)';
+        break;
+      case RenderType.CSR:
+        backgroundColor = 'rgba(59, 130, 246, 0.2)'; // Blue for CSR
+        borderColor = 'rgba(59, 130, 246, 0.8)';
+        break;
+      case RenderType.UNKNOWN:
+        backgroundColor = 'rgba(251, 191, 36, 0.2)'; // Yellow for Unknown
+        borderColor = 'rgba(251, 191, 36, 0.8)';
+        break;
+    }
 
     // Position overlay
     this.overlay.style.position = 'fixed';
@@ -146,7 +174,7 @@ export class OverlayManager {
     this.overlay.style.transition = 'all 0.1s ease';
 
     // Show tooltip
-    this.tooltip.show(element, isSSR, { x: mouseX, y: mouseY });
+    this.tooltip.show(element, renderType, { x: mouseX, y: mouseY });
   }
 
   /**

@@ -1,113 +1,142 @@
 /**
- * SSR Detector - Detects whether elements are server-side rendered or client-side rendered
- * Framework-agnostic approach: marks elements present at script load time as SSR
+ * SSR Detector - Multi-stage detection for server-side vs client-side rendered elements
+ * Injected at document_start for maximum accuracy
  */
+
+export enum RenderType {
+  SSR = 'SSR', // Server-side rendered (present in initial HTML)
+  CSR = 'CSR', // Client-side rendered (added by JavaScript)
+}
+
 export class SSRDetector {
-  private ssrElements: WeakSet<Element> = new WeakSet();
+  private elementStates: WeakMap<Element, RenderType> = new WeakMap();
   private observer: MutationObserver | null = null;
-  private initialScanComplete = false;
+  private documentStartElements: Set<Element> = new Set();
+  private phase: 'document_start' | 'dom_ready' | 'monitoring' = 'document_start';
 
   constructor() {
     this.init();
   }
 
   private init(): void {
-    // Mark all current elements as SSR immediately
-    this.markInitialElements();
+    console.log('[SSR Inspector] Initializing at:', document.readyState);
 
-    // Start observing for new CSR elements
-    this.startObserving();
+    // Phase 1: Capture elements at document_start (真正的 SSR)
+    this.captureDocumentStartElements();
+
+    // Phase 2: Wait for DOMContentLoaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.onDOMReady());
+    } else {
+      // Already loaded, go directly to monitoring
+      this.onDOMReady();
+    }
   }
 
   /**
-   * Mark all elements currently in DOM as SSR
+   * Phase 1: Capture all elements at document_start
+   * These are definitely SSR since no JS has executed yet
    */
-  private markInitialElements(): void {
-    console.log('[SSR Inspector] Marking initial SSR elements');
+  private captureDocumentStartElements(): void {
+    console.log('[SSR Inspector] Phase 1: Capturing document_start elements');
 
-    // Get all elements in the current DOM
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach((element) => {
-      this.ssrElements.add(element);
+    const elements = document.querySelectorAll('*');
+    elements.forEach((element) => {
+      this.documentStartElements.add(element);
+      this.elementStates.set(element, RenderType.SSR);
     });
 
-    this.initialScanComplete = true;
-    console.log(`[SSR Inspector] Marked ${allElements.length} SSR elements`);
+    console.log(`[SSR Inspector] Captured ${elements.length} SSR elements at document_start`);
   }
 
   /**
-   * Start observing DOM mutations to detect CSR elements
+   * Phase 2: DOMContentLoaded - classify new elements
    */
-  private startObserving(): void {
+  private onDOMReady(): void {
+    this.phase = 'dom_ready';
+    console.log('[SSR Inspector] Phase 2: DOMContentLoaded scan');
+
+    // Scan all current elements
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach((element) => {
+      if (!this.elementStates.has(element)) {
+        // Element exists at DOMContentLoaded but wasn't captured at document_start
+        // This means it was in the initial HTML but parsed after our first scan
+        // Therefore, it's still SSR (can be verified by viewing page source)
+        this.elementStates.set(element, RenderType.SSR);
+      }
+    });
+
+    console.log(`[SSR Inspector] Total elements at DOMContentLoaded: ${allElements.length}`);
+
+    // Phase 3: Start monitoring for CSR
+    this.startMonitoring();
+  }
+
+  /**
+   * Phase 3: Monitor for new CSR elements
+   */
+  private startMonitoring(): void {
+    this.phase = 'monitoring';
+    console.log('[SSR Inspector] Phase 3: Starting mutation observation');
+
     this.observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // New elements are CSR (not added to ssrElements set)
             const element = node as Element;
-            // Also mark all children as CSR
-            element.querySelectorAll('*').forEach((child) => {
-              // These are CSR elements, so we don't add them to ssrElements
-            });
+            // Definitely CSR if added during monitoring phase
+            this.markAsCSR(element);
           }
         });
       });
     });
 
-    this.observer.observe(document.body, {
+    this.observer.observe(document.body || document.documentElement, {
       childList: true,
       subtree: true,
     });
   }
 
   /**
-   * Check if an element is SSR
+   * Mark element and all its children as CSR
+   */
+  private markAsCSR(element: Element): void {
+    this.elementStates.set(element, RenderType.CSR);
+
+    // Also mark all children
+    element.querySelectorAll('*').forEach((child) => {
+      if (!this.elementStates.has(child)) {
+        this.elementStates.set(child, RenderType.CSR);
+      }
+    });
+  }
+
+  /**
+   * Get render type for an element
+   */
+  public getRenderType(element: Element): RenderType {
+    const state = this.elementStates.get(element);
+
+    if (state) {
+      return state;
+    }
+
+    // Element not in our map
+    // If we're in monitoring phase and it's not tracked, it's likely SSR
+    // (existed before monitoring started)
+    return RenderType.SSR;
+  }
+
+  /**
+   * Check if an element is SSR (for backward compatibility)
    */
   public isSSR(element: Element): boolean {
-    if (!this.initialScanComplete) {
-      return false;
-    }
-
-    // Check if element is in SSR set
-    if (this.ssrElements.has(element)) {
-      return true;
-    }
-
-    // Also check for framework-specific SSR markers
-    return this.hasSSRMarkers(element);
+    return this.getRenderType(element) === RenderType.SSR;
   }
 
   /**
-   * Check for framework-specific SSR markers
-   */
-  private hasSSRMarkers(element: Element): boolean {
-    // Check for common SSR attributes
-    const ssrAttributes = [
-      'data-server-rendered', // Vue SSR
-      'data-reactroot', // React SSR (older)
-      'data-react-checksum', // React SSR
-    ];
-
-    for (const attr of ssrAttributes) {
-      if (element.hasAttribute(attr)) {
-        return true;
-      }
-    }
-
-    // Check parent elements for SSR markers
-    let parent = element.parentElement;
-    while (parent) {
-      if (this.ssrElements.has(parent)) {
-        return true;
-      }
-      parent = parent.parentElement;
-    }
-
-    return false;
-  }
-
-  /**
-   * Get statistics about SSR vs CSR elements
+   * Get statistics about render types
    */
   public getStats(): { ssr: number; csr: number; total: number } {
     const allElements = document.querySelectorAll('*');
@@ -115,9 +144,10 @@ export class SSRDetector {
     let csrCount = 0;
 
     allElements.forEach((element) => {
-      if (this.isSSR(element)) {
+      const type = this.getRenderType(element);
+      if (type === RenderType.SSR) {
         ssrCount++;
-      } else {
+      } else if (type === RenderType.CSR) {
         csrCount++;
       }
     });
@@ -127,6 +157,13 @@ export class SSRDetector {
       csr: csrCount,
       total: allElements.length,
     };
+  }
+
+  /**
+   * Get current detection phase
+   */
+  public getPhase(): string {
+    return this.phase;
   }
 
   /**
