@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Chrome SSR Inspector",
+  "name": "SSR Inspector",
   "version": "0.1.0",
   "description": "Inspect and analyze Server-Side Rendering (SSR) applications in Chrome",
   "author": "Leo Chiu",
