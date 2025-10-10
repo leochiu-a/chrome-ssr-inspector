@@ -42,7 +42,8 @@ export class Tooltip {
     if (!this.tooltip) return;
 
     const tagName = element.tagName.toLowerCase();
-    const classes = element.className ? `.${element.className.split(' ').join('.')}` : '';
+    const classes =
+      element.classList.length > 0 ? `.${Array.from(element.classList).join('.')}` : '';
     const id = element.id ? `#${element.id}` : '';
     const rect = element.getBoundingClientRect();
 
