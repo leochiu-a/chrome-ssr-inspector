@@ -5,7 +5,7 @@
   "description": "Inspect and analyze Server-Side Rendering (SSR) applications in Chrome",
   "author": "Leo Chiu",
   "homepage_url": "https://github.com/leochiu-a/chrome-ssr-inspector",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Chrome SSR Inspector",
