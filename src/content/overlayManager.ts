@@ -153,10 +153,6 @@ export class OverlayManager {
         backgroundColor = 'rgba(59, 130, 246, 0.2)'; // Blue for CSR
         borderColor = 'rgba(59, 130, 246, 0.8)';
         break;
-      case RenderType.UNKNOWN:
-        backgroundColor = 'rgba(251, 191, 36, 0.2)'; // Yellow for Unknown
-        borderColor = 'rgba(251, 191, 36, 0.8)';
-        break;
     }
 
     // Position overlay
