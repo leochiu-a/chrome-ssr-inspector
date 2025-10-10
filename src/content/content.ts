@@ -50,7 +50,7 @@ class SSRInspector {
    * Setup message listener for popup communication
    */
   private setupMessageListener(): void {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.type === 'TOGGLE_INSPECTOR') {
         this.toggle();
         sendResponse({ enabled: this.enabled });
@@ -68,7 +68,7 @@ class SSRInspector {
    * Setup keyboard shortcut (Ctrl + Shift + I)
    */
   private setupKeyboardShortcut(): void {
-    const handler = (e: KeyboardEvent) => {
+    const handler = (e: KeyboardEvent): void => {
       // Use Ctrl + Shift + I (like inspector, but custom)
       // On Mac, Ctrl is still Ctrl (not Command)
       if (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
@@ -77,14 +77,11 @@ class SSRInspector {
         e.stopPropagation();
         e.stopImmediatePropagation();
         this.toggle();
-        return false;
       }
     };
 
-    // Add listener in capture phase with highest priority
+    // Add listener in capture phase at document level (highest priority)
     document.addEventListener('keydown', handler, true);
-    window.addEventListener('keydown', handler, true);
-    document.body?.addEventListener('keydown', handler, true);
 
     console.log('[SSR Inspector] Keyboard shortcut registered (Ctrl + Shift + I)');
   }
