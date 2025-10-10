@@ -11,7 +11,6 @@ export enum RenderType {
 export class SSRDetector {
   private elementStates: WeakMap<Element, RenderType> = new WeakMap();
   private observer: MutationObserver | null = null;
-  private documentStartElements: Set<Element> = new Set();
   private phase: 'document_start' | 'dom_ready' | 'monitoring' = 'document_start';
 
   constructor() {
@@ -42,7 +41,6 @@ export class SSRDetector {
 
     const elements = document.querySelectorAll('*');
     elements.forEach((element) => {
-      this.documentStartElements.add(element);
       this.elementStates.set(element, RenderType.SSR);
     });
 
