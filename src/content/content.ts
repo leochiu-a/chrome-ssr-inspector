@@ -11,6 +11,7 @@ class SSRInspector {
   private storageListener:
     | ((changes: { [key: string]: chrome.storage.StorageChange }) => void)
     | null = null;
+  private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
     console.log('[SSR Inspector] Initializing...');
@@ -73,7 +74,7 @@ class SSRInspector {
    */
   private setupKeyboardShortcut(): void {
     const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.userAgent);
-    const handler = (e: KeyboardEvent): void => {
+    this.keyboardHandler = (e: KeyboardEvent): void => {
       // Mac: Cmd+I, Windows/Linux: Ctrl+I
       const modifierKey = isMac ? e.metaKey : e.ctrlKey;
       if (modifierKey && !e.shiftKey && !e.altKey && (e.key === 'i' || e.key === 'I')) {
@@ -86,7 +87,7 @@ class SSRInspector {
     };
 
     // Add listener in capture phase at document level (highest priority)
-    document.addEventListener('keydown', handler, true);
+    document.addEventListener('keydown', this.keyboardHandler, true);
 
     console.log(`[SSR Inspector] Keyboard shortcut registered (${isMac ? 'Cmd' : 'Ctrl'}+I)`);
   }
@@ -135,6 +136,11 @@ class SSRInspector {
     if (this.storageListener) {
       chrome.storage.onChanged.removeListener(this.storageListener);
       this.storageListener = null;
+    }
+    // Remove keyboard listener
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler, true);
+      this.keyboardHandler = null;
     }
     this.overlayManager.destroy();
     this.ssrDetector.destroy();
