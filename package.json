@@ -7,7 +7,7 @@
     "build": "tsdown && npm run copy-static",
     "dev": "tsdown --watch",
     "clean": "rm -rf dist",
-    "copy-static": "cp manifest.json dist/ && cp -r src/popup/*.html src/popup/*.css dist/popup/ && mkdir -p dist/content && cp src/content/styles.css dist/content/ && cp -r src/assets dist/",
+    "copy-static": "cp manifest.json dist/ && cp -r src/popup/*.html src/popup/*.css dist/popup/ && mkdir -p dist/content && cp src/content/styles.css dist/content/",
     "lint": "oxlint src/",
     "lint:fix": "oxlint src/ --fix",
     "format": "prettier --write src/**/*",
