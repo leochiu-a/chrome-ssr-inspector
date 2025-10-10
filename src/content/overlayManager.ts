@@ -51,7 +51,8 @@ export class OverlayManager {
    * Enable inspector
    */
   public enable(): void {
-    if (this.enabled) return;
+    // Defensive cleanup: ensure no duplicate listeners
+    this.disable();
     this.enabled = true;
 
     // Add mouse event listeners
