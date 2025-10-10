@@ -20,7 +20,8 @@
     "prepare": "husky",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "package": "bash scripts/package.sh"
   },
   "keywords": [
     "chrome-extension",
