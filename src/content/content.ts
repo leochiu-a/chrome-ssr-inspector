@@ -8,6 +8,9 @@ class SSRInspector {
   private ssrDetector: SSRDetector;
   private overlayManager: OverlayManager;
   private enabled = false;
+  private storageListener:
+    | ((changes: { [key: string]: chrome.storage.StorageChange }) => void)
+    | null = null;
 
   constructor() {
     console.log('[SSR Inspector] Initializing...');
@@ -33,7 +36,7 @@ class SSRInspector {
     });
 
     // Listen for settings changes
-    chrome.storage.onChanged.addListener((changes) => {
+    this.storageListener = (changes) => {
       if (changes.inspectorEnabled) {
         this.enabled = changes.inspectorEnabled.newValue;
         if (this.enabled) {
@@ -43,7 +46,8 @@ class SSRInspector {
         }
         console.log(`[SSR Inspector] Settings changed: enabled=${this.enabled}`);
       }
-    });
+    };
+    chrome.storage.onChanged.addListener(this.storageListener);
   }
 
   /**
@@ -120,6 +124,19 @@ class SSRInspector {
       notification.classList.remove('show');
       setTimeout(() => notification.remove(), 300);
     }, 2000);
+  }
+
+  /**
+   * Cleanup resources
+   */
+  public destroy(): void {
+    // Remove storage listener
+    if (this.storageListener) {
+      chrome.storage.onChanged.removeListener(this.storageListener);
+      this.storageListener = null;
+    }
+    this.overlayManager.destroy();
+    this.ssrDetector.destroy();
   }
 }
 
