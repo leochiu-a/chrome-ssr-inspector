@@ -14,8 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const totalCount = document.getElementById('total-count') as HTMLSpanElement;
   const reloadNotice = document.getElementById('reload-notice') as HTMLDivElement;
   const reloadButton = document.getElementById('reload-button') as HTMLButtonElement;
+  const shortcutKeys = document.getElementById('shortcut-keys') as HTMLSpanElement;
 
   console.log('[Popup] Elements:', { toggleButton, statusText, reloadNotice });
+
+  // Set keyboard shortcut text based on platform
+  const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.userAgent);
+  shortcutKeys.textContent = isMac ? 'Cmd+I' : 'Ctrl+I';
 
   if (!toggleButton) {
     console.error('[Popup] ERROR: toggleButton is null!');

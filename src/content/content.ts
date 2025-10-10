@@ -69,13 +69,14 @@ class SSRInspector {
   }
 
   /**
-   * Setup keyboard shortcut (Ctrl + Shift + I)
+   * Setup keyboard shortcut (Cmd+I on Mac, Ctrl+I on Windows/Linux)
    */
   private setupKeyboardShortcut(): void {
+    const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.userAgent);
     const handler = (e: KeyboardEvent): void => {
-      // Use Ctrl + Shift + I (like inspector, but custom)
-      // On Mac, Ctrl is still Ctrl (not Command)
-      if (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
+      // Mac: Cmd+I, Windows/Linux: Ctrl+I
+      const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+      if (modifierKey && !e.shiftKey && !e.altKey && (e.key === 'i' || e.key === 'I')) {
         console.log('[SSR Inspector] Keyboard shortcut detected');
         e.preventDefault();
         e.stopPropagation();
@@ -87,7 +88,7 @@ class SSRInspector {
     // Add listener in capture phase at document level (highest priority)
     document.addEventListener('keydown', handler, true);
 
-    console.log('[SSR Inspector] Keyboard shortcut registered (Ctrl + Shift + I)');
+    console.log(`[SSR Inspector] Keyboard shortcut registered (${isMac ? 'Cmd' : 'Ctrl'}+I)`);
   }
 
   /**
