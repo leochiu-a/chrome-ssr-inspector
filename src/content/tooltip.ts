@@ -57,19 +57,13 @@ export class Tooltip {
         renderColor = '#10b981';
         renderLabel = 'SSR';
         renderDesc = 'Server-Side Rendered';
-        confidence = 'High - Present at document start';
+        confidence = 'High - Present in initial HTML';
         break;
       case RenderType.CSR:
         renderColor = '#3b82f6';
         renderLabel = 'CSR';
         renderDesc = 'Client-Side Rendered';
         confidence = 'High - Added by JavaScript';
-        break;
-      case RenderType.UNKNOWN:
-        renderColor = '#fbbf24';
-        renderLabel = 'UNKNOWN';
-        renderDesc = 'Cannot Determine';
-        confidence = 'Low - Added before monitoring';
         break;
     }
 
