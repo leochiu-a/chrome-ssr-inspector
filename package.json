@@ -4,7 +4,7 @@
   "description": "Chrome extension for inspecting SSR (Server-Side Rendering) applications",
   "main": "dist/content.js",
   "scripts": {
-    "build": "tsdown && npm run copy-static",
+    "build": "tsdown && pnpm run copy-static",
     "dev": "tsdown --watch",
     "clean": "rm -rf dist",
     "copy-static": "cp manifest.json dist/ && cp -r src/popup/*.html src/popup/*.css dist/popup/ && mkdir -p dist/content && cp src/content/styles.css dist/content/",
@@ -12,7 +12,7 @@
     "lint:fix": "oxlint src/ --fix",
     "format": "prettier --write src/**/*",
     "format:check": "prettier --check src/**/*",
-    "prebuild": "npm run clean && mkdir -p dist/popup",
+    "prebuild": "pnpm run clean && mkdir -p dist/popup",
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -20,7 +20,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish",
+    "release": "pnpm run build && changeset publish",
     "package": "bash scripts/package.sh"
   },
   "keywords": [
@@ -51,8 +51,7 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=22.0.0"
   },
   "repository": {
     "type": "git",
