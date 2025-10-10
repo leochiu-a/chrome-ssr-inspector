@@ -3,6 +3,8 @@
  * Injected at document_start for maximum accuracy
  */
 
+import { debug } from './debug';
+
 export enum RenderType {
   SSR = 'SSR', // Server-side rendered (present in initial HTML)
   CSR = 'CSR', // Client-side rendered (added by JavaScript)
@@ -18,7 +20,7 @@ export class SSRDetector {
   }
 
   private init(): void {
-    console.log('[SSR Inspector] Initializing at:', document.readyState);
+    debug.log('[SSR Inspector] Initializing at:', document.readyState);
 
     // Phase 1: Capture elements at document_start (真正的 SSR)
     this.captureDocumentStartElements();
@@ -37,14 +39,14 @@ export class SSRDetector {
    * These are definitely SSR since no JS has executed yet
    */
   private captureDocumentStartElements(): void {
-    console.log('[SSR Inspector] Phase 1: Capturing document_start elements');
+    debug.log('[SSR Inspector] Phase 1: Capturing document_start elements');
 
     const elements = document.querySelectorAll('*');
     elements.forEach((element) => {
       this.elementStates.set(element, RenderType.SSR);
     });
 
-    console.log(`[SSR Inspector] Captured ${elements.length} SSR elements at document_start`);
+    debug.log(`[SSR Inspector] Captured ${elements.length} SSR elements at document_start`);
   }
 
   /**
@@ -52,7 +54,7 @@ export class SSRDetector {
    */
   private onDOMReady(): void {
     this.phase = 'dom_ready';
-    console.log('[SSR Inspector] Phase 2: DOMContentLoaded scan');
+    debug.log('[SSR Inspector] Phase 2: DOMContentLoaded scan');
 
     // Scan all current elements
     const allElements = document.querySelectorAll('*');
@@ -65,7 +67,7 @@ export class SSRDetector {
       }
     });
 
-    console.log(`[SSR Inspector] Total elements at DOMContentLoaded: ${allElements.length}`);
+    debug.log(`[SSR Inspector] Total elements at DOMContentLoaded: ${allElements.length}`);
 
     // Phase 3: Start monitoring for CSR
     this.startMonitoring();
@@ -76,7 +78,7 @@ export class SSRDetector {
    */
   private startMonitoring(): void {
     this.phase = 'monitoring';
-    console.log('[SSR Inspector] Phase 3: Starting mutation observation');
+    debug.log('[SSR Inspector] Phase 3: Starting mutation observation');
 
     this.observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {

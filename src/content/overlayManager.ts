@@ -1,5 +1,6 @@
 import { SSRDetector, RenderType } from './ssrDetector';
 import { Tooltip } from './tooltip';
+import { debug } from './debug';
 
 /**
  * OverlayManager - Manages hover overlay and highlighting
@@ -62,7 +63,7 @@ export class OverlayManager {
     document.addEventListener('mousemove', this.mouseMoveHandler, true);
     document.addEventListener('mouseout', this.mouseOutHandler, true);
 
-    console.log('[SSR Inspector] Overlay enabled');
+    debug.log('[SSR Inspector] Overlay enabled');
   }
 
   /**
@@ -85,7 +86,7 @@ export class OverlayManager {
     this.hideOverlay();
     this.tooltip.hide();
 
-    console.log('[SSR Inspector] Overlay disabled');
+    debug.log('[SSR Inspector] Overlay disabled');
   }
 
   /**

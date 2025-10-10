@@ -1,5 +1,6 @@
 import { SSRDetector } from './ssrDetector';
 import { OverlayManager } from './overlayManager';
+import { debug } from './debug';
 
 /**
  * Main SSR Inspector Controller
@@ -14,7 +15,7 @@ class SSRInspector {
   private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
-    console.log('[SSR Inspector] Initializing...');
+    debug.log('[SSR Inspector] Initializing...');
 
     this.ssrDetector = new SSRDetector();
     this.overlayManager = new OverlayManager(this.ssrDetector);
@@ -33,7 +34,7 @@ class SSRInspector {
       if (this.enabled) {
         this.overlayManager.enable();
       }
-      console.log(`[SSR Inspector] Loaded settings: enabled=${this.enabled}`);
+      debug.log(`[SSR Inspector] Loaded settings: enabled=${this.enabled}`);
     });
 
     // Listen for settings changes
@@ -45,7 +46,7 @@ class SSRInspector {
         } else {
           this.overlayManager.disable();
         }
-        console.log(`[SSR Inspector] Settings changed: enabled=${this.enabled}`);
+        debug.log(`[SSR Inspector] Settings changed: enabled=${this.enabled}`);
       }
     };
     chrome.storage.onChanged.addListener(this.storageListener);
@@ -78,7 +79,7 @@ class SSRInspector {
       // Mac: Cmd+I, Windows/Linux: Ctrl+I
       const modifierKey = isMac ? e.metaKey : e.ctrlKey;
       if (modifierKey && !e.shiftKey && !e.altKey && (e.key === 'i' || e.key === 'I')) {
-        console.log('[SSR Inspector] Keyboard shortcut detected');
+        debug.log('[SSR Inspector] Keyboard shortcut detected');
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -89,7 +90,7 @@ class SSRInspector {
     // Add listener in capture phase at document level (highest priority)
     document.addEventListener('keydown', this.keyboardHandler, true);
 
-    console.log(`[SSR Inspector] Keyboard shortcut registered (${isMac ? 'Cmd' : 'Ctrl'}+I)`);
+    debug.log(`[SSR Inspector] Keyboard shortcut registered (${isMac ? 'Cmd' : 'Ctrl'}+I)`);
   }
 
   /**
@@ -97,18 +98,18 @@ class SSRInspector {
    */
   private toggle(): void {
     this.enabled = !this.enabled;
-    console.log('[SSR Inspector] Toggling to:', this.enabled ? 'ENABLED' : 'DISABLED');
+    debug.log('[SSR Inspector] Toggling to:', this.enabled ? 'ENABLED' : 'DISABLED');
 
     chrome.storage.sync.set({ inspectorEnabled: this.enabled });
 
     if (this.enabled) {
       this.overlayManager.enable();
       this.showNotification('SSR Inspector enabled');
-      console.log('[SSR Inspector] ✅ Inspector is now ENABLED');
+      debug.log('[SSR Inspector] ✅ Inspector is now ENABLED');
     } else {
       this.overlayManager.disable();
       this.showNotification('SSR Inspector disabled');
-      console.log('[SSR Inspector] ❌ Inspector is now DISABLED');
+      debug.log('[SSR Inspector] ❌ Inspector is now DISABLED');
     }
   }
 
