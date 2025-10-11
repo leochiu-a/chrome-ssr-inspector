@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -8,11 +8,70 @@
   </head>
   <body>
     <div class="container">
-      <h1>Chrome SSR Inspector</h1>
+      <div class="header">
+        <h1>SSR Inspector</h1>
+        <div class="status-badge">
+          <span class="status-label">Status:</span>
+          <span id="status-text" class="status">Loading...</span>
+        </div>
+      </div>
+
       <div class="content">
-        <p>SSR Inspector is ready</p>
+        <div id="reload-notice" class="reload-notice" style="display: none">
+          <p>⚠️ Please reload the page to use SSR Inspector</p>
+          <button id="reload-button" class="button button-reload">Reload Page</button>
+        </div>
+
+        <div class="stats-section">
+          <h2>Element Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-card ssr">
+              <div class="stat-label">SSR Elements</div>
+              <div class="stat-value" id="ssr-count">0</div>
+            </div>
+            <div class="stat-card csr">
+              <div class="stat-label">CSR Elements</div>
+              <div class="stat-value" id="csr-count">0</div>
+            </div>
+            <div class="stat-card total">
+              <div class="stat-label">Total Elements</div>
+              <div class="stat-value" id="total-count">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="toggle-inspector" class="button button-enable">Enable Inspector</button>
+        </div>
+
+        <div class="info">
+          <p class="shortcut" id="shortcut-text">
+            <strong>Keyboard shortcut:</strong> <span id="shortcut-keys"></span>
+          </p>
+          <div class="legend">
+            <div class="legend-item">
+              <span class="legend-color ssr"></span>
+              <span>Server-Side Rendered (SSR)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color csr"></span>
+              <span>Client-Side Rendered (CSR)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <p>
+          Made with ❤️ by
+          <a
+            href="https://github.com/leochiu-a/chrome-ssr-inspector"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Leo Chiu</a
+          >
+        </p>
       </div>
     </div>
-    <script src="popup.js"></script>
+    <script src="../popup.js"></script>
   </body>
 </html>
