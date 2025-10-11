@@ -227,3 +227,28 @@ body {
   width: 100%;
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
+
+.footer {
+  text-align: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #e5e7eb;
+}
+
+.footer p {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.footer a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.footer a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
