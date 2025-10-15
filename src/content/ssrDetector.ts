@@ -12,90 +12,141 @@ export enum RenderType {
 
 export class SSRDetector {
   private elementStates: WeakMap<Element, RenderType> = new WeakMap();
-  private observer: MutationObserver | null = null;
-  private phase: 'document_start' | 'dom_ready' | 'monitoring' = 'document_start';
+  private ssrObserver: MutationObserver | null = null;
+  private csrObserver: MutationObserver | null = null;
+  private phase: 'capturing_ssr' | 'monitoring_csr' = 'capturing_ssr';
 
   constructor() {
     this.init();
   }
 
   private init(): void {
-    debug.log('[SSR Inspector] Initializing at:', document.readyState);
+    debug.log('[SSR Inspector] Initializing at document_start:', document.readyState);
 
-    // Phase 1: Capture elements at document_start (真正的 SSR)
-    this.captureDocumentStartElements();
+    // Phase 1: Capture ALL elements during HTML parsing (before any JS runs)
+    this.startSSRCapture();
 
-    // Phase 2: Wait for DOMContentLoaded
+    // Phase 2: Switch to CSR monitoring at DOMContentLoaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.onDOMReady());
+      document.addEventListener('DOMContentLoaded', () => this.switchToCSRMonitoring());
     } else {
-      // Already loaded, go directly to monitoring
-      this.onDOMReady();
+      // Edge case: already loaded (shouldn't happen at document_start)
+      this.switchToCSRMonitoring();
     }
   }
 
   /**
-   * Phase 1: Capture all elements at document_start
-   * These are definitely SSR since no JS has executed yet
+   * Phase 1: Capture SSR elements as HTML is being parsed
+   * Run BEFORE any JavaScript executes
    */
-  private captureDocumentStartElements(): void {
-    debug.log('[SSR Inspector] Phase 1: Capturing document_start elements');
+  private startSSRCapture(): void {
+    debug.log('[SSR Inspector] Starting SSR capture at document_start');
 
-    const elements = document.querySelectorAll('*');
-    elements.forEach((element) => {
-      this.elementStates.set(element, RenderType.SSR);
-    });
+    // Capture existing elements
+    this.captureExistingElements();
 
-    debug.log(`[SSR Inspector] Captured ${elements.length} SSR elements at document_start`);
-  }
-
-  /**
-   * Phase 2: DOMContentLoaded - classify new elements
-   */
-  private onDOMReady(): void {
-    this.phase = 'dom_ready';
-    debug.log('[SSR Inspector] Phase 2: DOMContentLoaded scan');
-
-    // Scan all current elements
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach((element) => {
-      if (!this.elementStates.has(element)) {
-        // Element exists at DOMContentLoaded but wasn't captured at document_start
-        // This means it was in the initial HTML but parsed after our first scan
-        // Therefore, it's still SSR (can be verified by viewing page source)
-        this.elementStates.set(element, RenderType.SSR);
-      }
-    });
-
-    debug.log(`[SSR Inspector] Total elements at DOMContentLoaded: ${allElements.length}`);
-
-    // Phase 3: Start monitoring for CSR
-    this.startMonitoring();
-  }
-
-  /**
-   * Phase 3: Monitor for new CSR elements
-   */
-  private startMonitoring(): void {
-    this.phase = 'monitoring';
-    debug.log('[SSR Inspector] Phase 3: Starting mutation observation');
-
-    this.observer = new MutationObserver((mutations) => {
+    // Watch for new elements during HTML parsing
+    this.ssrObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
-            // Definitely CSR if added during monitoring phase
-            this.markAsCSR(element);
+            // During parsing phase, everything is SSR
+            this.elementStates.set(element, RenderType.SSR);
+
+            // Also capture all children
+            element.querySelectorAll('*').forEach((child) => {
+              if (!this.elementStates.has(child)) {
+                this.elementStates.set(child, RenderType.SSR);
+              }
+            });
           }
         });
       });
     });
 
-    this.observer.observe(document.body || document.documentElement, {
+    // Observe from the earliest possible point
+    const target = document.documentElement || document;
+    this.ssrObserver.observe(target, {
       childList: true,
       subtree: true,
     });
+
+    debug.log('[SSR Inspector] SSR observer started');
+  }
+
+  /**
+   * Capture all currently existing elements as SSR
+   */
+  private captureExistingElements(): void {
+    const elements = document.querySelectorAll('*');
+    elements.forEach((element) => {
+      this.elementStates.set(element, RenderType.SSR);
+    });
+    debug.log(`[SSR Inspector] Captured ${elements.length} existing SSR elements`);
+  }
+
+  /**
+   * Phase 2: Switch to CSR monitoring after HTML is fully parsed
+   */
+  private switchToCSRMonitoring(): void {
+    debug.log('[SSR Inspector] DOMContentLoaded - switching to CSR monitoring');
+
+    // Stop SSR capture
+    if (this.ssrObserver) {
+      this.ssrObserver.disconnect();
+      this.ssrObserver = null;
+    }
+
+    // Final SSR scan (catch anything we might have missed)
+    const finalElements = document.querySelectorAll('*');
+    let newCount = 0;
+    finalElements.forEach((element) => {
+      if (!this.elementStates.has(element)) {
+        this.elementStates.set(element, RenderType.SSR);
+        newCount++;
+      }
+    });
+
+    debug.log(`[SSR Inspector] Final SSR scan: ${finalElements.length} total, ${newCount} new`);
+
+    // Now start CSR monitoring
+    this.phase = 'monitoring_csr';
+    this.startCSRMonitoring();
+  }
+
+  /**
+   * Start monitoring for CSR elements (after DOMContentLoaded)
+   */
+  private startCSRMonitoring(): void {
+    debug.log('[SSR Inspector] Starting CSR monitoring');
+
+    this.csrObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+
+            // Check if this is truly a NEW element
+            if (!this.elementStates.has(element)) {
+              // New element after DOMContentLoaded -> CSR
+              this.markAsCSR(element);
+              debug.log('[SSR Inspector] CSR element detected:', element);
+            } else {
+              // Element was moved (hydration) -> keep original state (SSR)
+              debug.log('[SSR Inspector] SSR element moved (hydration):', element);
+            }
+          }
+        });
+      });
+    });
+
+    this.csrObserver.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+
+    debug.log('[SSR Inspector] CSR observer started');
   }
 
   /**
@@ -170,9 +221,13 @@ export class SSRDetector {
    * Cleanup
    */
   public destroy(): void {
-    if (this.observer) {
-      this.observer.disconnect();
-      this.observer = null;
+    if (this.ssrObserver) {
+      this.ssrObserver.disconnect();
+      this.ssrObserver = null;
+    }
+    if (this.csrObserver) {
+      this.csrObserver.disconnect();
+      this.csrObserver = null;
     }
   }
 }
